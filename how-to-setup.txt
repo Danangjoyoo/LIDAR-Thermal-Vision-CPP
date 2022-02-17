@@ -1,0 +1,53 @@
+## PREPARATION
+sudo apt-get install build-essential cmake unzip pkg-config libjpeg-dev libpng-dev libtiff-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk-3-dev libatlas-base-dev gfortran python2-dev python2-pip python3-devpython3-pip libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+
+curl -L https://github.com/opencv/opencv/archive/4.4.0.zip -o opencv-4.4.0.zip
+curl -L https://github.com/opencv/opencv_contrib/archive/4.4.0.zip -o opencv_contrib-4.4.0.zip
+unzip opencv-4.4.0.zip
+unzip opencv_contrib-4.4.0.zip
+
+## INSTALL CUDA 11.5
+# go to directory
+sudo sh cuda_11.5.1_495.29.05_linux.run --override-driver-check --silent
+
+# removing nvidia package manager :
+# 	sudo apt remove --purge nvidia\*
+# 	sudo apt autoremove 
+# disable noveau --> https://linuxconfig.org/how-to-disable-blacklist-nouveau-nvidia-driver-on-ubuntu-20-04-focal-fossa-linux
+
+## INSTALL CUDNN 8
+# go to the extracted folder of cudnn-linux-x86_64-XXXXX.tar.xz
+sudo cp include/cudnn*.h /usr/local/cuda/include 
+sudo cp -P lib/libcudnn* /usr/local/cuda/lib64 
+sudo chmod a+r /usr/local/cuda/include/cudnn*.h /usr/local/cuda/lib64/libcudnn*
+
+## INSTALL OPENCV 4.4.0
+# extract both opencv-4.4.0 & opencv_contrib-4.4.0
+
+mkdir build && cd build
+
+## check your gpu computability (https://developer.nvidia.com/cuda-gpus)
+## insert those cumputability to the 'CUDA_ARCH_BIN' arguments below
+## Nano == 5.3, Quadro K1200 == 5.0
+
+cmake -D WITH_CUDA=ON -D CUDA_ARCH_BIN="5.0,5.3,6.2,7.2,7.5" -D CUDA_ARCH_PTX="" -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-4.4.0/modules -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_EXAMPLES=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D BUILD_opencv_sfm=OFF -D INSTALL_PYTHON_EXAMPLES=ON -D OPENCV_DNN_CUDA=ON -D HAVE_opencv_python3=ON -D WITH_CUBLAS=1 -D ENABLE_FAST_MATH=1 -D CUDA_FAST_MATH=1 ..
+
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D INSTALL_PYTHON_EXAMPLES=ON -D INSTALL_C_EXAMPLES=OFF -D OPENCV_ENABLE_NONFREE=ON -D WITH_CUDA=ON -D WITH_CUDNN=OFF -D OPENCV_DNN_CUDA=ON -D ENABLE_FAST_MATH=1 -D CUDA_FAST_MATH=1 -D CUDA_ARCH_BIN=7.0 -D WITH_CUBLAS=1 -D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules -D HAVE_opencv_python3=ON -D PYTHON_EXECUTABLE=~/.virtualenvs/opencv_cuda/bin/python -D BUILD_EXAMPLES=ON ..
+
+make -j6
+
+sudo checkinstall -D make install
+
+# setup debian package creation
+# 1. Maintainer : admin@opencv.org
+# 2. Summary : OpenCV 4.4.0 CUDA
+# 3. Name : libopencv-4.4.0
+# 4. Version : 4.4.0
+
+sudo chmod 666 libopencv-4.4.0_4.4.0-1_amd64.deb
+sudo mv libopencv-4.4.0_4.4.0-1_amd64.deb libopencv-4.4.0
+
+sudo dpkg --contents libopencv-4.4.0
+
+## REMOVING OPENCV
+sudo dpkg -r libopencv-4.4.0
